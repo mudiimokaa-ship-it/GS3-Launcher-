@@ -1,0 +1,45 @@
+name: Build GS3 Launcher APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project (if uploaded as launcher.zip)
+        run: |
+          if [ -f launcher.zip ]; then unzip -o launcher.zip; fi
+          ls -la
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Stamp build info (repo + version) for in-app updates
+        run: echo "window.BUILD={repo:\"${{ github.repository }}\",run:${{ github.run_number }}};" > app/src/main/assets/build.js
+
+      - name: Build APK
+        run: gradle assembleRelease --no-daemon --stacktrace -Pvc=${{ github.run_number }}
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk GS3-Launcher.apk
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: GS3 Launcher v1.${{ github.run_number }}
+          body: "حمّل ملف GS3-Launcher.apk وثبّته على جهاز CarLinked"
+          files: GS3-Launcher.apk
