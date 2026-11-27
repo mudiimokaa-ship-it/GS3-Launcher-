@@ -30,6 +30,13 @@ jobs:
       - name: Stamp build info (repo + version) for in-app updates
         run: echo "window.BUILD={repo:\"${{ github.repository }}\",run:${{ github.run_number }}};" > app/src/main/assets/build.js
 
+      - name: Add TomTom key (from repository secret TOMTOM_KEY)
+        env:
+          TT: ${{ secrets.TOMTOM_KEY }}
+        run: |
+          K=$(printf '%s' "$TT" | tr -cd 'A-Za-z0-9')
+          if [ -n "$K" ]; then echo "window.TT_KEY=\"$K\";" >> app/src/main/assets/build.js; echo "TomTom key added"; else echo "No TomTom key"; fi
+
       - name: Build APK
         run: gradle assembleRelease --no-daemon --stacktrace -Pvc=${{ github.run_number }}
 
